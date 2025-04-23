@@ -1,6 +1,6 @@
 // === Script 2: Core Application Logic & UI Interaction ===
 // Versjon: final_canvas_v2 (Basert på opplastet fungerende + Feed/Discord)
-// DEL 1 av 2
+// DEL 1 av 2 MED DEBUG-LOGGER FOR LOGIN
 // Inneholder: Globale variabler, Initialisering, Brukerdata, Login/Logout, Grunnleggende UI
 
 console.log("Script 2.js (DEL 1/2) loaded: Core logic starting (v3.13 - Discord Integration).");
@@ -12,9 +12,9 @@ let currentWorkout = []; // Array to hold activities added during the current se
 let retroSoundEnabled = false; // Flag for enabling/disabling sound effects
 let synth = null;       // Tone.js synthesizer instance
 let firebaseInitialized = false; // Flag indicating if Firebase connection is established
-let db = null;          // Firebase Realtime Database instance
-let usersRef = null;    // Firebase reference to the 'users' node
-let chatRef = null;     // Firebase reference to the 'chat' node
+let db = null;           // Firebase Realtime Database instance
+let usersRef = null;     // Firebase reference to the 'users' node
+let chatRef = null;      // Firebase reference to the 'chat' node
 let initialDataLoaded = false; // Flag indicating if initial user data has been loaded
 let chatListenerAttached = false; // Flag to prevent attaching multiple chat listeners
 let isDemoMode = false; // Set to true for local testing without Firebase
@@ -84,23 +84,23 @@ function renderActivityFeed() {
                 // Sjekk om entryId finnes og er innenfor tidsrammen
                 if (entryTimestamp && typeof entryTimestamp === 'number' && entryTimestamp >= twentyFourHoursAgo) {
                     if (entry.exercises && Array.isArray(entry.exercises)) {
-                         entry.exercises.forEach(ex => {
+                        entry.exercises.forEach(ex => {
                             if (!ex) return; // Hopp over ugyldig øvelse
                             let text = ''; const exerciseName = ex.name || ex.type || 'en aktivitet';
                             if (ex.type === 'Gåtur' && ex.km !== undefined) text = `gikk ${ex.km.toFixed(1)} km`;
                             else if (ex.type === 'Skritt' && ex.steps !== undefined) text = `logget ${ex.steps.toLocaleString('no-NO')} skritt`;
-                            else if (ex.kilos !== undefined && ex.reps !== undefined && ex.sets !== undefined) text = `trente ${exerciseName} (${ex.kilos}kg x ${ex.reps}r x ${ex.sets}s)`;
+                            else if (ex.kilos !== undefined && ex.reps !== undefined && ex.sets !== undefined) text = `trente <span class="math-inline">\{exerciseName\} \(</span>{ex.kilos}kg x ${ex.reps}r x ${ex.sets}s)`;
                             else if (ex.type !== 'Gåtur' && ex.type !== 'Skritt') text = `fullførte ${exerciseName}`;
                             if (text) activityItems.push({ timestamp: entryTimestamp, user: username, text: text });
-                         });
-                     }
-                 }
-             });
+                        });
+                    }
+                }
+            });
         }
     });
     activityItems.sort((a, b) => b.timestamp - a.timestamp); const itemsToShow = activityItems.slice(0, 50);
     if (itemsToShow.length === 0) activityFeedContainer.innerHTML = '<p class="italic">Ingen aktivitet siste 24 timer.</p>';
-    else activityFeedContainer.innerHTML = itemsToShow.map(item => `<p><strong class="text-accent">${item.user}</strong> ${item.text} <span class="feed-timestamp">${formatTimeAgo(item.timestamp)}</span></p>`).join('');
+    else activityFeedContainer.innerHTML = itemsToShow.map(item => `<p><strong class="text-accent">${item.user}</strong> <span class="math-inline">\{item\.text\} <span class\="feed\-timestamp"\></span>{formatTimeAgo(item.timestamp)}</span></p>`).join('');
 }
 // --- *** SLUTT PÅ FEED-FUNKSJONER *** ---
 
@@ -146,7 +146,7 @@ function initializeApp() {
     initializeFirebaseConnection();
     displayDailyTip();
     updateWeeklyFeatures();
-    setupBaseEventListeners();
+    setupBaseEventListeners(); // ANTAR at denne funksjonen finnes i DEL 2 av scriptet ditt
     const savedTheme = localStorage.getItem('fitnessAppTheme') || 'klinkekule';
     setTheme(savedTheme);
     setActiveView('login');
@@ -164,15 +164,25 @@ function loadUsersFromFirebase() {
     initialDataLoaded = false;
     usersRef.on('value', (snapshot) => {
         try {
+            // ----> DEBUG LOGS LAGT TIL <----
             console.log("--- Firebase 'value' event triggered ---");
-            const dataFromFirebase = snapshot.val();
+            const rawData = snapshot.val(); // Få data først
+            console.log("Raw data received from Firebase:", rawData); // Log rådata
+            // ----> SLUTT DEBUG <----
+
+            const dataFromFirebase = rawData; // Bruk rådata videre
             const defaultUserStructure = { xp: 0, level: 0, log: [], theme: 'klinkekule', lastWorkoutDate: null, streak: 0, snooped: false, lastLogin: null, achievements: [], stats: { totalWorkouts: 0, totalKm: 0, totalVolume: 0, totalSteps: 0, themesTried: new Set(), timesSnooped: 0, lastMood: null, importedData: false, exportedData: false } };
+
             if (dataFromFirebase === null) {
                 console.warn("Firebase '/users' is empty or null.");
                 if (!initialDataLoaded) { console.log("Database empty, initializing locally..."); loadDefaultUsersLocally(); }
                 else { console.log("Data became null after load. Resetting locally."); loadDefaultUsersLocally(); }
             } else {
-                users = dataFromFirebase;
+                users = dataFromFirebase; // Sett global variabel
+                // ----> DEBUG LOG LAGT TIL <----
+                console.log("Global 'users' variable state AFTER assignment:", users);
+                // ----> SLUTT DEBUG <----
+
                 // Data Migration/Structure/Type Conversion
                 Object.keys(users).forEach(username => {
                     const defaultClone = JSON.parse(JSON.stringify(defaultUserStructure));
@@ -265,6 +275,10 @@ function initializeAppUI() {
  * Populates the main user selection dropdown.
  */
 function populateUserSelect() {
+    // ----> DEBUG LOG LAGT TIL <----
+    console.log("populateUserSelect STARTING. Checking 'users' variable:", users);
+    // ----> SLUTT DEBUG <----
+
     if (!userSelect) { console.error("populateUserSelect: userSelect element not found!"); return; }
     console.log("Populating user select. Users available:", Object.keys(users).length);
 
@@ -305,6 +319,10 @@ function populateUserSelect() {
  * @param {string} username - The username to log in.
  */
 function loginUser(username) {
+    // ----> DEBUG LOG LAGT TIL <----
+    console.log("loginUser STARTING for:", username);
+    // ----> SLUTT DEBUG <----
+
     console.log(`Attempting login for: ${username}`);
     if (!users || !users[username]) {
         console.error(`Login failed: User ${username} not found in local data.`);
@@ -335,9 +353,14 @@ function loginUser(username) {
         setTheme(users[currentUser].theme || 'klinkekule');
     } else { console.warn("loginUser: setTheme function not found."); }
 
-    console.log(`loginUser: Calling processLoginLogoutUIUpdate for user ${currentUser}`);
+    // ----> DEBUG LOG LAGT TIL <----
+    console.log("loginUser: Calling processLoginLogoutUIUpdate...");
+    // ----> SLUTT DEBUG <----
     processLoginLogoutUIUpdate();
 
+    // ----> DEBUG LOG LAGT TIL <----
+    console.log("loginUser: Calling setActiveView('profile')...");
+    // ----> SLUTT DEBUG <----
     if (typeof setActiveView === 'function') {
         setActiveView('profile'); // Go to profile after login
     } else { console.warn("loginUser: setActiveView function not found."); }
@@ -351,6 +374,10 @@ function loginUser(username) {
     } else { console.warn("loginUser: checkAndShowSnoopNotification function not found."); }
 
     console.log(`Successfully logged in as ${currentUser}`);
+
+    // ----> DEBUG LOG LAGT TIL <----
+    console.log("loginUser FINISHED for:", username);
+    // ----> SLUTT DEBUG <----
 }
 
 /**
@@ -501,7 +528,7 @@ function updateUI() {
     if (statusDisplay) {
         statusDisplay.innerHTML = `<h2>${currentUser}</h2><p>XP: ${totalXP.toLocaleString('no-NO')}</p><p>Nivå: ${levelNames[currentLevel] || "Ukjent"} (Level ${currentLevel})</p>`;
     }
-     console.log(`UI updated for ${currentUser}: Level ${currentLevel}, XP ${totalXP}, XP in level: ${xpInCurrentLevel}/${xpNeededForThisLevelBracket}, Progress ${progress.toFixed(1)}%`);
+     console.log(`UI updated for ${currentUser}: Level ${currentLevel}, XP ${totalXP}, XP in level: <span class="math-inline">\{xpInCurrentLevel\}/</span>{xpNeededForThisLevelBracket}, Progress ${progress.toFixed(1)}%`);
 }
 
 /**
@@ -515,9 +542,9 @@ function clearUserProfileUI() {
      // Update placeholder for XP needed for level 1 using NEW function
      if (xpNextLevelDisplay) {
          if(typeof getXPForLevelGain === 'function') {
-             xpNextLevelDisplay.textContent = getXPForLevelGain(1).toLocaleString('no-NO'); // XP for level 1 gain
+              xpNextLevelDisplay.textContent = getXPForLevelGain(1).toLocaleString('no-NO'); // XP for level 1 gain
          } else {
-             xpNextLevelDisplay.textContent = '10'; // Fallback
+              xpNextLevelDisplay.textContent = '10'; // Fallback
          }
      }
      if (xpTotalDisplay) xpTotalDisplay.textContent = '0';
@@ -556,7 +583,7 @@ function renderCurrentSession() {
         else { details = `${item.kilos}kg x ${item.reps} reps x ${item.sets} sett`; }
         const moodEmojis = { great: '😃', good: '😊', ok: '😐', meh: '😕', bad: '😩' };
         const moodEmoji = moodEmojis[item.mood] || '';
-        return `<li class="text-sm">${item.name} (${details}) ${moodEmoji} - ${item.xp} XP ${item.comment ? `<i class="opacity-70">(${item.comment})</i>` : ''}</li>`;
+        return `<li class="text-sm"><span class="math-inline">\{item\.name\} \(</span>{details}) ${moodEmoji} - ${item.xp} XP ${item.comment ? `<i class="opacity-70">(${item.comment})</i>` : ''}</li>`;
     }).join('');
     if (completeWorkoutButton) completeWorkoutButton.disabled = false;
 }
@@ -627,7 +654,7 @@ function completeWorkout() {
                     activityTypeForComment = firstEx.type; // Use the type of the first exercise
                     if (firstEx.type === 'Gåtur') { firstExerciseDetails = `${firstEx.km} km gåtur`; activityTypeForComment = 'Gåtur'; }
                     else if (firstEx.type === 'Skritt') { firstExerciseDetails = `${(firstEx.steps || 0).toLocaleString('no-NO')} skritt`; activityTypeForComment = 'Skritt'; }
-                    else if (firstEx.type !== 'Annet') { firstExerciseDetails = `${firstEx.name} (${firstEx.kilos}kg x ${firstEx.reps}r x ${firstEx.sets}s)`; activityTypeForComment = 'Styrke'; } // Assume lifting is 'Styrke'
+                    else if (firstEx.type !== 'Annet') { firstExerciseDetails = `<span class="math-inline">\{firstEx\.name\} \(</span>{firstEx.kilos}kg x ${firstEx.reps}r x ${firstEx.sets}s)`; activityTypeForComment = 'Styrke'; } // Assume lifting is 'Styrke'
                     else { firstExerciseDetails = `${firstEx.name}`; activityTypeForComment = 'Annet'; } // Use specific name for 'Annet'
                 }
 
@@ -638,7 +665,7 @@ function completeWorkout() {
                     } catch (e) { console.error("Error getting random comment:", e); }
                 } else { console.warn("completeWorkout: getRandomComment function not found (Script 6?)."); }
 
-                let discordMessage = `**${currentUser}** fullførte ${firstExerciseDetails} (+${finalSessionXP.toLocaleString('no-NO')} XP)`;
+                let discordMessage = `**${currentUser}** fullførte <span class="math-inline">\{firstExerciseDetails\} \(\+</span>{finalSessionXP.toLocaleString('no-NO')} XP)`;
                 if(entry.streakDays > 1) discordMessage += `, _Streak: ${entry.streakDays} dager!_`;
                 if(levelUp) discordMessage += `\n**LEVEL UP!** 🔥 Nådde nivå ${userData.level}!`;
                 discordMessage += `\n> ${randomComment}`; // Add the comment on a new line
@@ -672,7 +699,55 @@ function checkAchievements(username) { /* ... (Keep existing implementation) ...
 function renderAchievements() { /* ... (Keep existing implementation) ... */ }
 
 // --- UI Helpers ---
-function setActiveView(viewId) { /* ... (Keep existing implementation) ... */ }
+function setActiveView(viewId) {
+    // ----> DEBUG LOG LAGT TIL <----
+    console.log(`setActiveView called with viewId: ${viewId}`);
+    // ----> SLUTT DEBUG <----
+
+    currentActiveView = viewId; // Store the active view
+
+    if (viewSections) {
+        viewSections.forEach(section => {
+            const isActive = section.id === `${viewId}-view`;
+            console.log(`setActiveView: Toggling active class for section: ${section.id}. Is active? ${isActive}`); // <-- DEBUG LOG
+            section.classList.toggle('active', isActive);
+        });
+    } else { console.error("setActiveView: viewSections NodeList not found."); }
+
+    if (viewButtons) {
+        viewButtons.forEach(button => {
+            const isMatchingButton = button.dataset.view === viewId;
+            button.classList.toggle('nav-button-active', isMatchingButton);
+            button.classList.toggle('nav-button-inactive', !isMatchingButton);
+        });
+    } else { console.error("setActiveView: viewButtons NodeList not found."); }
+
+    // Initialize chat listener if chat view is activated
+    if (viewId === 'chat' && !chatListenerAttached && typeof initializeChat === 'function') {
+        initializeChat();
+    }
+
+    // *** Render appropriate chart when view is activated ***
+    if (viewId === 'profile') {
+        if (typeof renderXpPerDayChart === 'function') {
+            console.log("Profile view activated, attempting to render XP chart.");
+            renderXpPerDayChart(); // Call function from Script 5
+        } else {
+            console.warn("setActiveView: renderXpPerDayChart function (from Script 5) not found.");
+            const errorElement = document.getElementById('xpChartError');
+            if (errorElement) errorElement.textContent = "Graf-funksjon mangler (Script 5).";
+        }
+    } else if (viewId === 'scoreboard') {
+         if (typeof renderTotalXpPerDayChart === 'function') {
+            console.log("Scoreboard view activated, attempting to render Total XP chart.");
+            renderTotalXpPerDayChart(); // Call function from Script 5
+        } else {
+            console.warn("setActiveView: renderTotalXpPerDayChart function (from Script 5) not found.");
+            const errorElement = document.getElementById('totalXpChartError'); // Use the correct error element ID
+            if (errorElement) errorElement.textContent = "Graf-funksjon mangler (Script 5).";
+        }
+    }
+}
 function showNotification(message) { /* ... (Keep existing implementation) ... */ }
 function triggerLevelUpAnimation(newLevel) { /* ... (Keep existing implementation) ... */ }
 function triggerAchievementUnlockAnimation(achievementName) { /* ... (Keep existing implementation) ... */ }
@@ -770,7 +845,8 @@ function updateWeeklyFeatures() { /* ... (Basert på opplastet fil) ... */ }
 function toggleNikkoButton(show) { /* ... (Basert på opplastet fil) ... */ }
 
 // --- Event Listener Setup ---
-function setupBaseEventListeners() { /* ... (Basert på opplastet fil, men sørg for at listener for feed-knapp er med) ... */ }
+// MERK: setupBaseEventListeners må defineres i DEL 2 av scriptet ditt
+// function setupBaseEventListeners() { /* ... */ }
 
 // --- Run Initialization on DOM Load ---
 // (Samme som din originale/fungerende versjon)
@@ -778,4 +854,3 @@ if (typeof window.appInitialized === 'undefined') {
      window.appInitialized = true;
      document.addEventListener('DOMContentLoaded', initializeApp);
 } else { console.warn("Initialization script (Script 2) seems to be loaded more than once."); }
-
