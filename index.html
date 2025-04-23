@@ -575,7 +575,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/bob.js') // Endret filnavnet her
+          navigator.serviceWorker.register('bob.js') // Endret filnavnet her
             .then(registration => {
               console.log('ServiceWorker registration successful with scope: ', registration.scope);
             })
