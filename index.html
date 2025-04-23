@@ -3,11 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fit G4FL - App edition</title> <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1f2937"> <link rel="apple-touch-icon" href="icons/icon-192x192.png"> <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1f2937">
+    <link rel="icon" type="image/png" href="icons/icon-192x192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <meta name="apple-mobile-web-app-status-bar" content="#1f2937">
+    <title>Fit G4FL - Prototype v3.14 (Oppdelt Logikk)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Press+Start+2P&family=Roboto+Mono&family=Merriweather&family=Lobster&family=Orbitron:wght@400;700&family=Cinzel:wght@400;700&family=Quicksand:wght@400;500;700&display=swap" rel="stylesheet">
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 
     <style>
@@ -74,8 +81,8 @@
         .snoop-modal.show { opacity: 1; visibility: visible; }
         .snoop-modal-content { max-width: 500px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 2rem; border-radius: 0.5rem; position: relative; transform: scale(0.95) translateY(10px); transition: transform 0.3s ease-out, opacity 0.3s ease-out; opacity: 0; }
         .snoop-modal.show .snoop-modal-content { transform: scale(1) translateY(0); opacity: 1; }
-        #close-snoop-modal { position: absolute; top: 0.5rem; right: 0.75rem; font-size: 1.5rem; color: var(--text-color); background: none; border: none; cursor: pointer; line-height: 1; padding: 0.25rem; transition: transform 0.2s, color 0.2s; } /* Adjusted position/styling */
-        #close-snoop-modal:hover { transform: scale(1.2) rotate(90deg); color: #ef4444; /* Red hover */ }
+        #close-snoop-modal { transition: transform 0.2s; }
+        #close-snoop-modal:hover { transform: scale(1.2) rotate(90deg); }
 
         /* Notification Bar Animation */
         .notification-bar { padding: 0.75rem 1rem; margin-bottom: 1rem; border-radius: 0.375rem; text-align: center; font-size: 0.9rem; display: none; opacity: 0; transform: translateY(-20px); transition: opacity 0.4s ease-out, transform 0.4s ease-out; }
@@ -103,21 +110,21 @@
 
         /* Admin Achievement List Styling */
         #admin-achievements-list label { display: block; margin-bottom: 0.5rem; cursor: pointer; }
-        #admin-achievements-list input[type="checkbox"] { margin-right: 0.5rem; vertical-align: middle; } /* Added alignment */
+        #admin-achievements-list input[type="checkbox"] { margin-right: 0.5rem; }
         #admin-achievements-list .achievement-desc { font-size: 0.8rem; opacity: 0.7; margin-left: 1.5rem; }
 
         /* Chart Container */
-        .chart-container {
+        .chart-container { /* Use class for potentially multiple charts */
             margin-top: 1.5rem;
             padding-top: 1.5rem;
             border-top-width: 1px;
-            border-color: var(--border-color);
+            border-color: var(--border-color); /* Use theme border color */
         }
-
         /* Activity Feed Styling */
-        #activity-feed p { border-bottom: 1px dashed var(--border-color); padding-bottom: 0.25rem; margin-bottom: 0.25rem; display: flex; justify-content: space-between; flex-wrap: wrap; }
-        #activity-feed p:last-child { border-bottom: none; margin-bottom: 0; }
-        #activity-feed .feed-timestamp { font-size: 0.75rem; opacity: 0.7; margin-left: 0.5rem; white-space: nowrap; }
+        #activity-feed p { padding: 0.3rem 0.5rem; border-bottom: 1px dashed var(--border-color); opacity: 0.9; transition: background-color 0.2s; font-size: 0.85rem; }
+        #activity-feed p:last-child { border-bottom: none; }
+        #activity-feed p:hover { background-color: rgba(var(--accent-color-rgb, 94 234 212) / 0.05); }
+        #activity-feed .feed-timestamp { font-size: 0.75rem; opacity: 0.6; margin-left: 0.5rem; float: right; }
 
 
         /* --- THEME DEFINITIONS --- */
@@ -170,10 +177,10 @@
         /* --- ANIMATIONS --- */
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
     </style>
 </head>
 <body class="p-4 md:p-8">
-
     <header class="mb-6 flex flex-col sm:flex-row justify-between items-center">
         <h1 class="text-3xl font-bold text-header mb-4 sm:mb-0">Fit G4FL</h1>
         <div class="flex items-center space-x-2 sm:space-x-4">
@@ -183,51 +190,58 @@
         </div>
     </header>
 
-    <div id="demo-mode-indicator" class="text-center p-2 mb-4 text-sm italic text-accent font-semibold border border-dashed border-card rounded"> Laster... </div>
+    <div id="demo-mode-indicator" class="text-center p-2 mb-4 text-sm italic text-accent font-semibold border border-dashed border-card rounded">
+        Laster...
+    </div>
+
     <div id="notification-area" class="notification-bar"></div>
-    <div id="daily-tip-container" class="daily-tip">Laster dagens tips...</div>
+
+    <div id="daily-tip-container" class="daily-tip">Laster dagens (hysteriske) tips...</div>
 
     <div id="app-content" class="logged-out">
 
         <section id="login-section" class="mb-6 view-section active">
-             <div class="card bg-card border-card">
+            <div class="card bg-card border-card">
                 <h2 class="text-2xl font-semibold mb-4 text-header">Velg Bruker & Logg Inn</h2>
                 <form id="login-form" class="flex flex-col sm:flex-row items-end gap-4">
                     <div class="flex-grow w-full">
                         <label for="user-select">Bruker:</label>
-                        <select id="user-select" name="user-select" required> <option value="" disabled selected>-- Laster brukere --</option> </select>
+                        <select id="user-select" name="user-select" required>
+                            <option value="" disabled selected>-- Laster brukere --</option>
+                            </select>
                     </div>
                     <div class="flex-grow w-full">
-                        <label for="password-input">Passord:</label>
-                        <input type="password" id="password-input" name="password" class="font-mono" required>
+                         <label for="password-input">Passord:</label>
+                         <input type="password" id="password-input" name="password" class="font-mono" required>
                     </div>
                     <button type="submit" id="login-btn" class="button-base button-primary w-full sm:w-auto">Logg Inn</button>
                 </form>
-                <p class="text-xs italic mt-2 opacity-80">Passordet er den første bokstaven i brukernavnet ditt.</p>
-                <div id="status" class="mt-4 text-sm text-red-400"></div>
+                 <p class="text-xs italic mt-2 opacity-80">Passordet er den første bokstaven i brukernavnet ditt.</p>
+                 <div id="status" class="mt-4 text-sm text-red-400"></div>
             </div>
         </section>
 
         <div class="requires-login">
-             <nav class="mb-6 text-center flex flex-wrap justify-center gap-2">
-                 <button class="nav-button view-button nav-button-inactive" data-view="logger">Logg Økt</button>
-                 <button class="nav-button view-button nav-button-inactive" data-view="profile">Min Profil</button>
-                 <button class="nav-button view-button nav-button-inactive" data-view="log">Min Logg</button>
-                 <button class="nav-button view-button nav-button-inactive" data-view="userlist">Brukerliste</button>
-                 <button class="nav-button view-button nav-button-inactive" data-view="scoreboard">Scoreboard</button>
-                 <button class="nav-button view-button nav-button-inactive" data-view="activityfeed">Feed (24t)</button>
-                 <button class="nav-button view-button nav-button-inactive" data-view="achievements">Achievements</button>
-                 <button class="nav-button view-button nav-button-inactive" data-view="chat">Chat</button>
-                 <button class="nav-button view-button nav-button-inactive" data-view="about">Om Appen</button>
-                 <button class="nav-button view-button nav-button-inactive" data-view="extras">Ekstra</button>
+
+            <nav class="mb-6 text-center flex flex-wrap justify-center gap-2">
+                <button class="nav-button view-button nav-button-inactive" data-view="logger">Logg Økt</button>
+                <button class="nav-button view-button nav-button-inactive" data-view="profile">Min Profil</button>
+                <button class="nav-button view-button nav-button-inactive" data-view="log">Min Logg</button>
+                <button class="nav-button view-button nav-button-inactive" data-view="userlist">Brukerliste</button>
+                <button class="nav-button view-button nav-button-inactive" data-view="scoreboard">Scoreboard</button>
+                <button class="nav-button view-button nav-button-inactive" data-view="achievements">Achievements</button>
+                <button class="nav-button view-button nav-button-inactive" data-view="chat">Chat</button>
+                <button class="nav-button view-button nav-button-inactive" data-view="activityfeed">Feed</button>
+                <button class="nav-button view-button nav-button-inactive" data-view="about">Om Appen</button>
+                <button class="nav-button view-button nav-button-inactive" data-view="extras">Ekstra</button>
              </nav>
 
             <main>
                 <section id="logger-view" class="view-section">
-                     <div class="card bg-card border-card">
+                    <div class="card bg-card border-card">
                         <h2 class="text-2xl font-semibold mb-4 text-header">Loggfør Økt</h2>
                         <form id="workout-form" class="space-y-4">
-                           <div>
+                            <div>
                                 <label for="exercise-type">Type aktivitet:</label>
                                 <select id="exercise-type" name="exercise-type" required>
                                     <option value="" disabled selected>-- Velg type --</option>
@@ -255,7 +269,7 @@
                                 </div>
                                 <div class="form-field-reps active">
                                     <label for="reps">Reps:</label>
-                                    <input type="number" id="reps" name="reps" min="1" max="200" placeholder="8">
+                                     <input type="number" id="reps" name="reps" min="1" max="200" placeholder="8">
                                 </div>
                                 <div class="form-field-sets active">
                                     <label for="sets">Sett:</label>
@@ -263,41 +277,41 @@
                                 </div>
                             </div>
                             <div class="form-field-km">
-                                <label for="km">Kilometer (km):</label>
-                                <input type="number" id="km" name="km" step="0.1" min="0.1" max="50" placeholder="5.5">
-                            </div>
+                                 <label for="km">Kilometer (km):</label>
+                                 <input type="number" id="km" name="km" step="0.1" min="0.1" max="50" placeholder="5.5">
+                             </div>
                              <div class="form-field-skritt">
-                                <label for="skritt">Antall Skritt:</label>
-                                <input type="number" id="skritt" name="skritt" step="1" min="1" max="35000" placeholder="8000">
-                            </div>
-                            <div>
-                                <label for="workout-comment">Kommentar (valgfritt):</label>
-                                <input type="text" id="workout-comment" name="workout-comment" placeholder="Hvordan gikk økten? Noe spesielt?">
-                            </div>
-                            <div class="mt-4">
-                                <label>Hvordan føltes økten? (Påvirker XP)</label>
-                                <div class="mood-selector mt-1 flex flex-wrap gap-2">
-                                    <input type="radio" name="mood" id="mood-great" value="great"><label for="mood-great" class="border-card">😃 Lett</label>
-                                    <input type="radio" name="mood" id="mood-good" value="good" checked><label for="mood-good" class="border-card">😊 Normal</label>
-                                    <input type="radio" name="mood" id="mood-ok" value="ok"><label for="mood-ok" class="border-card">😐 OK+</label>
-                                    <input type="radio" name="mood" id="mood-meh" value="meh"><label for="mood-meh" class="border-card">😕 Tungt</label>
-                                    <input type="radio" name="mood" id="mood-bad" value="bad"><label for="mood-bad" class="border-card">😩 Blytungt!</label>
-                                </div>
-                            </div>
+                                 <label for="skritt">Antall Skritt:</label>
+                                 <input type="number" id="skritt" name="skritt" step="1" min="1" max="35000" placeholder="8000">
+                             </div>
+                             <div>
+                                 <label for="workout-comment">Kommentar (valgfritt):</label>
+                                 <input type="text" id="workout-comment" name="workout-comment" placeholder="Hvordan gikk økten? Noe spesielt?">
+                             </div>
+                             <div class="mt-4">
+                                 <label>Hvordan føltes økten? (Påvirker XP)</label>
+                                 <div class="mood-selector mt-1 flex flex-wrap gap-2">
+                                     <input type="radio" name="mood" id="mood-great" value="great"><label for="mood-great" class="border-card">😃 Lett</label>
+                                     <input type="radio" name="mood" id="mood-good" value="good" checked><label for="mood-good" class="border-card">😊 Normal</label>
+                                     <input type="radio" name="mood" id="mood-ok" value="ok"><label for="mood-ok" class="border-card">😐 OK+</label>
+                                     <input type="radio" name="mood" id="mood-meh" value="meh"><label for="mood-meh" class="border-card">😕 Tungt</label>
+                                     <input type="radio" name="mood" id="mood-bad" value="bad"><label for="mood-bad" class="border-card">😩 Blytungt!</label>
+                                 </div>
+                             </div>
                             <button type="submit" class="button-base button-primary w-full sm:w-auto mt-4">Legg til aktivitet</button>
                         </form>
                     </div>
                     <div class="card bg-card border-card mt-6">
-                        <h3 class="text-xl font-semibold mb-3 text-accent">Økt så langt:</h3>
-                        <ul id="current-session-list" class="space-y-2 mb-4 list-disc list-inside">
-                            <li class="italic">Ingen aktivitet lagt til enda...</li>
-                        </ul>
-                        <button id="complete-workout-button" class="button-base button-primary w-full" disabled>Fullfør Økt & Få XP!</button>
+                         <h3 class="text-xl font-semibold mb-3 text-accent">Økt så langt:</h3>
+                         <ul id="current-session-list" class="space-y-2 mb-4 list-disc list-inside">
+                             <li class="italic">Ingen aktivitet lagt til enda...</li>
+                         </ul>
+                         <button id="complete-workout-button" class="button-base button-primary w-full" disabled>Fullfør Økt & Få XP!</button>
                     </div>
                 </section>
 
                 <section id="profile-view" class="view-section">
-                     <div class="card bg-card border-card">
+                    <div class="card bg-card border-card">
                         <h2 class="text-2xl font-semibold mb-4 text-header">Min Profil</h2>
                         <div class="space-y-4">
                             <p class="text-lg">Nivå: <span id="level-display" class="font-bold text-accent">Laster...</span><span id="level-emoji" class="level-emoji"></span></p>
@@ -312,151 +326,271 @@
                             <p>Dager trent på rad (Streak): <span id="streak-counter" class="font-bold text-accent">0</span></p>
                         </div>
                         <div id="xpChartContainer" class="chart-container">
-                           <h3 class="text-lg font-semibold mb-2 text-accent">XP per Ukedag (Siste 7 dager)</h3>
-                           <div class="relative h-64"> <canvas id="xpPerDayChart"></canvas> </div>
-                           <p id="xpChartError" class="text-xs italic text-red-400 mt-2"></p>
+                            <h3 class="text-lg font-semibold mb-2 text-accent">XP per Ukedag (Siste 7 dager)</h3>
+                            <div class="relative h-64">
+                                <canvas id="xpPerDayChart"></canvas>
+                            </div>
+                            <p id="xpChartError" class="text-xs italic text-red-400 mt-2"></p>
                         </div>
-                    </div>
-                    <div class="card bg-card border-card mt-6">
-                        <h3 class="text-lg font-medium text-accent mb-2">Nylig Aktivitet (Siste 24t)</h3>
-                        <div id="activity-feed" class="space-y-1 text-sm">
-                            <p class="italic">Laster feed...</p>
-                        </div>
+                     </div>
+                </section>
+
+                <section id="log-view" class="view-section">
+                     <div class="card bg-card border-card">
+                         <h2 class="text-2xl font-semibold mb-4 text-header">Min Treningslogg</h2>
+                         <div id="log-entries" class="space-y-4">
+                             <p class="italic">Laster logg...</p>
+                             </div>
+                     </div>
+                  </section>
+
+                <section id="userlist-view" class="view-section">
+                    <div class="card bg-card border-card">
+                        <h2 class="text-2xl font-semibold mb-4 text-header">Brukerliste</h2>
+                        <ul id="user-list-display" class="space-y-1">
+                            <li class="italic">Laster brukerliste...</li>
+                            </ul>
                     </div>
                 </section>
 
-                 <section id="log-view" class="view-section">
-                     <div class="card bg-card border-card">
-                        <h2 class="text-2xl font-semibold mb-4 text-header">Min Treningslogg</h2>
-                        <div id="log-entries" class="space-y-4"> <p class="italic">Laster logg...</p> </div>
-                    </div>
-                 </section>
-
-                 <section id="userlist-view" class="view-section">
-                     <div class="card bg-card border-card">
-                        <h2 class="text-2xl font-semibold mb-4 text-header">Brukerliste</h2>
-                        <ul id="user-list-display" class="space-y-1"> <li class="italic">Laster brukerliste...</li> </ul>
-                    </div>
-                 </section>
-
-                 <section id="scoreboard-view" class="view-section">
-                     <div class="card bg-card border-card">
+                <section id="scoreboard-view" class="view-section">
+                    <div class="card bg-card border-card">
                         <h2 class="text-2xl font-semibold mb-4 text-header">Ukens Scoreboard</h2>
                         <div class="mb-6">
-                            <h3 class="text-lg font-medium text-accent mb-2">Høyest XP (Siste 7 dager)</h3>
-                            <ol id="scoreboard-list" class="list-decimal list-inside space-y-1"> <li class="italic">Laster XP...</li> </ol>
+                            <h3 class="text-lg font-medium text-accent mb-2">Høyest XP (Denne uken)</h3>
+                            <ol id="scoreboard-list" class="list-decimal list-inside space-y-1">
+                                <li class="italic">Laster XP-scoreboard...</li>
+                            </ol>
                         </div>
-                        <div id="totalXpChartContainer" class="chart-container">
-                           <h3 class="text-lg font-semibold mb-2 text-accent">Samlet XP per Ukedag (Siste 7 dager)</h3>
-                           <div class="relative h-64"> <canvas id="totalXpPerDayChart"></canvas> </div>
-                           <p id="totalXpChartError" class="text-xs italic text-red-400 mt-2"></p>
+                         <div id="totalXpChartContainer" class="chart-container">
+                            <h3 class="text-lg font-semibold mb-2 text-accent">Samlet XP per Ukedag (Siste 7 dager)</h3>
+                            <div class="relative h-64">
+                                <canvas id="totalXpPerDayChart"></canvas>
+                            </div>
+                            <p id="totalXpChartError" class="text-xs italic text-red-400 mt-2"></p>
                         </div>
-                        <div class="mt-6 pt-6 border-t border-card">
-                           <h3 class="text-lg font-medium text-accent mb-2">Flest Skritt (Siste 7 dager)</h3>
-                           <ol id="scoreboard-steps-list" class="list-decimal list-inside space-y-1"> <li class="italic">Laster skritt...</li> </ol>
+                         <div class="mt-6 pt-6 border-t border-card">
+                            <h3 class="text-lg font-medium text-accent mb-2">Flest Skritt (Denne uken)</h3>
+                            <ol id="scoreboard-steps-list" class="list-decimal list-inside space-y-1">
+                                <li class="italic">Laster skritt-liste...</li>
+                            </ol>
                         </div>
+                     </div>
+                </section>
+
+                <section id="achievements-view" class="view-section">
+                    <div class="card bg-card border-card">
+                        <h2 class="text-2xl font-semibold mb-4 text-header">Achievements</h2>
+                        <div id="achievements-list" class="space-y-3">
+                             <p class="italic">Laster achievements...</p>
+                             </div>
                     </div>
+                </section>
+
+                <section id="chat-view" class="view-section">
+                     <div class="card bg-card border-card">
+                         <h2 class="text-2xl font-semibold mb-4 text-header">G4FL Chat</h2>
+                         <div id="chat-messages" class="mb-4 p-2 border border-card h-64 overflow-y-auto flex flex-col-reverse bg-opacity-10" style="background-color: rgba(128, 128, 128, 0.1);">
+                             <p class="text-center italic text-sm opacity-70 p-4" id="chat-loading-msg">Laster meldinger...</p>
+                             </div>
+                         <form id="chat-form" class="flex gap-2">
+                             <input type="text" id="chat-input" placeholder="Skriv en melding..." class="flex-grow" required autocomplete="off" maxlength="280">
+                             <button type="submit" class="button-base button-primary">Send</button>
+                         </form>
+                     </div>
                  </section>
 
                  <section id="activityfeed-view" class="view-section">
                     <div class="card bg-card border-card">
-                        <h2 class="text-2xl font-semibold mb-4 text-header">Aktivitetsfeed (Siste 24t)</h2>
-                        <div id="activity-feed-main" class="space-y-1 text-sm">
-                            <p class="italic">Laster feed...</p>
-                        </div>
+                        <h2 class="text-2xl font-semibold mb-4 text-header">Siste Aktiviteter (24t)</h2>
+                        <div id="activity-feed" class="space-y-1 max-h-96 overflow-y-auto">
+                            <p class="italic">Laster aktivitetsfeed...</p> </div>
                     </div>
-                 </section>
+                </section>
 
-                 <section id="achievements-view" class="view-section">
+                <section id="about-view" class="view-section">
+                     <div class="card bg-card border-card">
+                         <h2 class="text-2xl font-semibold mb-4 text-header">Om Fit G4FL</h2>
+                         <div class="space-y-4 text-base leading-relaxed prose prose-invert max-w-none">
+                             <p> Yo! Vi er kanskje rå i gaming, og det er få folk man stoler mer på enn gjengen her når det gjelder raids eller clutch plays. Men... la oss være ærlige, kanskje ikke alle er like kjappe på 60-meteren lenger? 😉 </p>
+                              <p> Denne appen er et forsøk på å gjøre det litt morsommere å komme seg i litt bedre form. Se på det som et nytt spill vi kan spille sammen – et der vi levler opp IRL (In Real Life). </p>
+                              <p> Målet er ikke å bli verdensmester i noe som helst (med mindre det er gaming, da), men å ha det gøy, logge litt fremgang, og kanskje føle seg litt mindre "lubben, feit og træg/sen" underveis. Vi heier på hverandre, enten det er i spillet eller på vei til neste level her! </p>
+                              <p class="mt-6 text-sm italic opacity-70"> Laget med kode og (litt for mye?) koffein. </p>
+                         </div>
+                     </div>
+                  </section>
+
+                <section id="extras-view" class="view-section">
                     <div class="card bg-card border-card">
-                        <h2 class="text-2xl font-semibold mb-4 text-header">Achievements</h2>
-                        <div id="achievements-list" class="space-y-3"> <p class="italic">Laster achievements...</p> </div>
-                    </div>
-                 </section>
-
-                 <section id="chat-view" class="view-section">
-                      <div class="card bg-card border-card">
-                        <h2 class="text-2xl font-semibold mb-4 text-header">G4FL Chat</h2>
-                        <div id="chat-messages" class="mb-4 p-2 border border-card h-64 overflow-y-auto flex flex-col-reverse bg-opacity-10" style="background-color: rgba(128, 128, 128, 0.1);">
-                           <p class="text-center italic text-sm opacity-70 p-4" id="chat-loading-msg">Laster meldinger...</p>
+                        <h2 class="text-2xl font-semibold mb-4 text-header">Ekstra</h2>
+                        <div class="flex flex-col items-center space-y-8">
+                            <div class="text-center">
+                                <button id="motivation-button" class="button-base button-secondary">Mistet Motivasjonen?</button>
+                                <p class="text-xs mt-1 opacity-70">(Trykk for en brutal sannhet)</p>
+                            </div>
+                            <div>
+                                <p class="text-center mb-2 font-medium">Motivasjonsmaskot:</p>
+                                <div id="mascot" class="mascot text-center">😺</div>
+                                <p id="mascot-message" class="text-sm italic text-center mt-1 min-h-[1.25rem]">...</p>
+                            </div>
+                            <div class="text-center">
+                                <button id="retro-mode-button" class="button-base button-secondary">Retro Mode Lyd (Av/På)</button>
+                                <p class="text-xs mt-1 opacity-70">(Krever interaksjon for å starte lyd)</p>
+                            </div>
+                             <div id="nikko-section" class="text-center" style="display: none;">
+                                 <button id="nikko-buy-xp-button" class="button-base button-primary animate-pulse">💎 Kjøp XP 💎</button>
+                                 <p class="text-xs mt-1 opacity-70">(Bare for Nikko?)</p>
+                             </div>
+                              <div class="text-center admin-only">
+                                  <button id="admin-extras-button" class="button-base button-primary border-red-500 text-red-100">
+                                      ⚙️ Admin Panel ⚙️
+                                     </button>
+                                   <p class="text-xs mt-1 opacity-70">(Kun for Helgrim)</p>
+                              </div>
+                             <div class="mt-6 border-t border-card pt-6 w-full text-center space-y-4">
+                                 <h3 class="text-lg font-medium mb-3">Datahåndtering</h3>
+                                 <div class="flex flex-wrap justify-center gap-3">
+                                     <button id="save-data-button" class="button-base button-secondary" title="Data lagres automatisk til Firebase">Lagre Data Manuelt</button>
+                                     <button id="export-data-button" class="button-base button-secondary">Eksporter Data</button>
+                                     <button id="import-data-button" class="button-base button-secondary">Importer Data</button>
+                                     <input type="file" id="import-file-input" accept=".json" style="display: none;">
+                                 </div>
+                                 <p id="data-action-message" class="text-xs italic mt-2 h-4"></p>
+                             </div>
+                             <div class="mt-6 border-t border-card pt-6 w-full text-center">
+                                 <h3 class="text-lg font-medium mb-3">Bytt Tema Manuelt</h3>
+                                 <div class="flex flex-wrap justify-center gap-2">
+                                     <button class="button-base button-secondary theme-button text-xs" data-theme="kennyball">Kennyball</button>
+                                     <button class="button-base button-secondary theme-button text-xs" data-theme="nikko">Nikko</button>
+                                     <button class="button-base button-secondary theme-button text-xs" data-theme="klinkekule">Klinkekule</button>
+                                     <button class="button-base button-secondary theme-button text-xs" data-theme="helgrim">Helgrim</button>
+                                     <button class="button-base button-secondary theme-button text-xs" data-theme="krrroppekatt">Krrroppekatt</button>
+                                     <button class="button-base button-secondary theme-button text-xs" data-theme="beerbjorn">Beerbjorn</button>
+                                     <button class="button-base button-secondary theme-button text-xs" data-theme="dardna">Dardna</button>
+                                     <button class="button-base button-secondary theme-button text-xs" data-theme="skytebasen">Skytebasen</button>
+                                 </div>
+                             </div>
                         </div>
-                        <form id="chat-form" class="flex gap-2">
-                           <input type="text" id="chat-input" placeholder="Skriv en melding..." class="flex-grow" required autocomplete="off" maxlength="280">
-                           <button type="submit" class="button-base button-primary">Send</button>
-                        </form>
+                    </div>
+                </section>
+
+                <section id="admin-view" class="view-section">
+                     <div class="card bg-card border-card">
+                         <h2 class="text-2xl font-semibold mb-4 text-header">Admin Panel</h2>
+
+                         <div class="space-y-4 mb-6 pb-6 border-b border-card">
+                             <h3 class="text-lg font-medium text-accent">Juster XP / Tilbakestill Bruker</h3>
+                             <div>
+                                 <label for="admin-user-select">Velg bruker:</label>
+                                 <select id="admin-user-select" name="admin-user-select" required>
+                                     <option value="" disabled selected>-- Laster brukere --</option>
+                                     </select>
+                             </div>
+                             <div>
+                                 <label for="admin-xp-amount">XP Poeng (+/-):</label>
+                                 <input type="number" id="admin-xp-amount" name="admin-xp-amount" step="1" placeholder="F.eks. 100 eller -50">
+                             </div>
+                             <div class="flex flex-wrap gap-4">
+                                 <button id="admin-give-xp-button" class="button-base button-primary flex-grow sm:flex-grow-0">Juster XP</button>
+                                 <button id="admin-reset-user-button" class="button-base button-secondary border-yellow-500 text-yellow-300 flex-grow sm:flex-grow-0">Tilbakestill Bruker</button>
+                             </div>
+                             <p id="admin-action-message" class="text-xs italic mt-2 h-4"></p>
+                         </div>
+
+                         <div class="space-y-4 mb-6 pb-6 border-b border-card">
+                              <h3 class="text-lg font-medium text-accent">Legg til Ny Bruker</h3>
+                              <div>
+                                   <label for="admin-new-username">Nytt Brukernavn:</label>
+                                   <input type="text" id="admin-new-username" placeholder="F.eks. NySpiller123" required>
+                              </div>
+                              <div class="flex gap-4">
+                                 <button id="admin-add-user-button" class="button-base button-primary flex-grow">Legg til Bruker</button>
+                              </div>
+                              <p id="admin-add-user-message" class="text-xs italic mt-2 h-4"></p>
+                         </div>
+
+                         <div class="space-y-4 mb-6 pb-6 border-b border-card">
+                             <h3 class="text-lg font-medium text-accent">Juster Achievements (for valgt bruker)</h3>
+                             <div id="admin-achievements-list" class="space-y-2 max-h-60 overflow-y-auto border border-card p-3 rounded">
+                                 <p class="italic text-sm">Velg en bruker for å se achievements...</p>
+                             </div>
+                             <div class="flex gap-4">
+                                 <button id="admin-save-achievements-button" class="button-base button-primary flex-grow">Lagre Achievements</button>
+                             </div>
+                              <p id="admin-achievements-message" class="text-xs italic mt-2 h-4"></p>
+                         </div>
+
+                         <div class="space-y-4">
+                              <h3 class="text-lg font-medium text-red-500">Slett Bruker (Permanent!)</h3>
+                              <p class="text-sm text-red-400">Advarsel: Dette kan ikke angres!</p>
+                              <div class="flex gap-4">
+                                 <button id="admin-delete-user-button" class="button-base bg-red-600 hover:bg-red-800 text-white border-red-800 flex-grow">Slett Valgt Bruker</button>
+                              </div>
+                              <p id="admin-delete-user-message" class="text-xs italic mt-2 h-4"></p>
+                         </div>
                      </div>
                  </section>
 
-                 <section id="about-view" class="view-section">
-                      <div class="card bg-card border-card">
-                        <h2 class="text-2xl font-semibold mb-4 text-header">Om Fit G4FL</h2>
-                        <div class="space-y-4 text-base leading-relaxed prose prose-invert max-w-none">
-                           <p> Yo! Vi er kanskje rå i gaming, og det er få folk man stoler mer på enn gjengen her når det gjelder raids eller clutch plays. Men... la oss være ærlige, kanskje ikke alle er like kjappe på 60-meteren lenger? 😉 </p>
-                           <p> Denne appen er et forsøk på å gjøre det litt morsommere å komme seg i litt bedre form. Se på det som et nytt spill vi kan spille sammen – et der vi levler opp IRL (In Real Life). </p>
-                           <p> Målet er ikke å bli verdensmester i noe som helst (med mindre det er gaming, da), men å ha det gøy, logge litt fremgang, og kanskje føle seg litt mindre "lubben, feit og træg/sen" underveis. Vi heier på hverandre, enten det er i spillet eller på vei til neste level her! </p>
-                           <p class="mt-6 text-sm italic opacity-70"> Laget med kode og (litt for mye?) koffein. </p>
-                        </div>
-                    </div>
-                 </section>
-
-                 <section id="extras-view" class="view-section">
-                      <div class="card bg-card border-card">
-                        <h2 class="text-2xl font-semibold mb-4 text-header">Ekstra</h2>
-                        <div class="flex flex-col items-center space-y-8">
-                            <div class="text-center"> <button id="motivation-button" class="button-base button-secondary">Mistet Motivasjonen?</button> <p class="text-xs mt-1 opacity-70">(Trykk for en brutal sannhet)</p> </div>
-                            <div> <p class="text-center mb-2 font-medium">Motivasjonsmaskot:</p> <div id="mascot" class="mascot text-center">😺</div> <p id="mascot-message" class="text-sm italic text-center mt-1 min-h-[1.25rem]">...</p> </div>
-                            <div class="text-center"> <button id="retro-mode-button" class="button-base button-secondary">Retro Mode Lyd (Av/På)</button> <p class="text-xs mt-1 opacity-70">(Krever interaksjon)</p> </div>
-                            <div id="nikko-section" class="text-center" style="display: none;"> <button id="nikko-buy-xp-button" class="button-base button-primary animate-pulse">💎 Kjøp XP 💎</button> <p class="text-xs mt-1 opacity-70">(Bare for Nikko?)</p> </div>
-                            <div class="text-center admin-only"> <button id="admin-extras-button" class="button-base button-primary border-red-500 text-red-100"> ⚙️ Admin Panel ⚙️ </button> <p class="text-xs mt-1 opacity-70">(Kun for Helgrim)</p> </div>
-                            <div class="mt-6 border-t border-card pt-6 w-full text-center space-y-4"> <h3 class="text-lg font-medium mb-3">Datahåndtering</h3> <div class="flex flex-wrap justify-center gap-3"> <button id="save-data-button" class="button-base button-secondary" title="Data lagres automatisk til Firebase">Lagre Data Manuelt</button> <button id="export-data-button" class="button-base button-secondary">Eksporter Data</button> <button id="import-data-button" class="button-base button-secondary">Importer Data</button> <input type="file" id="import-file-input" accept=".json" style="display: none;"> </div> <p id="data-action-message" class="text-xs italic mt-2 h-4"></p> </div>
-                            <div class="mt-6 border-t border-card pt-6 w-full text-center"> <h3 class="text-lg font-medium mb-3">Bytt Tema Manuelt</h3> <div class="flex flex-wrap justify-center gap-2"> <button class="button-base button-secondary theme-button text-xs" data-theme="kennyball">Kennyball</button> <button class="button-base button-secondary theme-button text-xs" data-theme="nikko">Nikko</button> <button class="button-base button-secondary theme-button text-xs" data-theme="klinkekule">Klinkekule</button> <button class="button-base button-secondary theme-button text-xs" data-theme="helgrim">Helgrim</button> <button class="button-base button-secondary theme-button text-xs" data-theme="krrroppekatt">Krrroppekatt</button> <button class="button-base button-secondary theme-button text-xs" data-theme="beerbjorn">Beerbjorn</button> <button class="button-base button-secondary theme-button text-xs" data-theme="dardna">Dardna</button> <button class="button-base button-secondary theme-button text-xs" data-theme="skytebasen">Skytebasen</button> </div> </div>
-                        </div>
-                    </div>
-                 </section>
-
-                 <section id="admin-view" class="view-section">
-                     <div class="card bg-card border-card">
-                       <h2 class="text-2xl font-semibold mb-4 text-header">Admin Panel</h2>
-                       <div class="space-y-4 mb-6 pb-6 border-b border-card"> <h3 class="text-lg font-medium text-accent">Juster XP / Tilbakestill Bruker</h3> <div> <label for="admin-user-select">Velg bruker:</label> <select id="admin-user-select" name="admin-user-select" required> <option value="" disabled selected>-- Laster brukere --</option> </select> </div> <div> <label for="admin-xp-amount">XP Poeng (+/-):</label> <input type="number" id="admin-xp-amount" name="admin-xp-amount" step="1" placeholder="F.eks. 100 eller -50"> </div> <div class="flex flex-wrap gap-4"> <button id="admin-give-xp-button" class="button-base button-primary flex-grow sm:flex-grow-0">Juster XP</button> <button id="admin-reset-user-button" class="button-base button-secondary border-yellow-500 text-yellow-300 flex-grow sm:flex-grow-0">Tilbakestill Bruker</button> </div> <p id="admin-action-message" class="text-xs italic mt-2 h-4"></p> </div>
-                       <div class="space-y-4 mb-6 pb-6 border-b border-card"> <h3 class="text-lg font-medium text-accent">Legg til Ny Bruker</h3> <div> <label for="admin-new-username">Nytt Brukernavn:</label> <input type="text" id="admin-new-username" placeholder="F.eks. NySpiller123" required> </div> <div class="flex gap-4"> <button id="admin-add-user-button" class="button-base button-primary flex-grow">Legg til Bruker</button> </div> <p id="admin-add-user-message" class="text-xs italic mt-2 h-4"></p> </div>
-                       <div class="space-y-4 mb-6 pb-6 border-b border-card"> <h3 class="text-lg font-medium text-accent">Juster Achievements (for valgt bruker)</h3> <div id="admin-achievements-list" class="space-y-2 max-h-60 overflow-y-auto border border-card p-3 rounded"> <p class="italic text-sm">Velg en bruker...</p> </div> <div class="flex gap-4"> <button id="admin-save-achievements-button" class="button-base button-primary flex-grow">Lagre Achievements</button> </div> <p id="admin-achievements-message" class="text-xs italic mt-2 h-4"></p> </div>
-                       <div class="space-y-4"> <h3 class="text-lg font-medium text-red-500">Slett Bruker (Permanent!)</h3> <p class="text-sm text-red-400">Advarsel: Dette kan ikke angres!</p> <div class="flex gap-4"> <button id="admin-delete-user-button" class="button-base bg-red-600 hover:bg-red-800 text-white border-red-800 flex-grow">Slett Valgt Bruker</button> </div> <p id="admin-delete-user-message" class="text-xs italic mt-2 h-4"></p> </div>
-                    </div>
-                 </section>
-            </main>
-
-        </div> </div> <div id="snoop-modal" class="snoop-modal">
+            </main> </div> </div> <div id="snoop-modal" class="snoop-modal">
         <div class="snoop-modal-content bg-card border-card relative">
             <button id="close-snoop-modal" class="absolute top-2 right-3 text-2xl font-bold hover:text-red-500 transition-colors duration-200">&times;</button>
             <h3 id="snoop-modal-title" class="text-xl font-semibold mb-4 text-header">Info for...</h3>
-            <div id="snoop-user-info" class="mb-4 text-sm border-b border-card pb-3 space-y-1"> <p><strong>Nivå:</strong> <span id="snoop-level">--</span></p> <p><strong>XP (Total):</strong> <span id="snoop-xp">--</span></p> <p><strong>Sist innlogget:</strong> <span id="snoop-last-login">--</span></p> <p><strong>Siste humør:</strong> <span id="snoop-last-mood">--</span></p> <p class="mt-2 pt-2 border-t border-dashed border-card"><strong>Siste 7 dager:</strong></p> <p>Løftet Volum: <span id="snoop-7d-volume">--</span> kg</p> <p>Gått Distanse: <span id="snoop-7d-km">--</span> km</p> <p>Opptjent XP: <span id="snoop-7d-xp">--</span></p> </div>
-            <div id="snoop-achievements-section" class="mb-4 text-sm border-b border-card pb-3 space-y-1"> <h5 class="text-md font-semibold text-accent">Achievements:</h5> <ul id="snoop-achievements" class="list-disc list-inside text-xs space-y-1"> <li class="italic">Laster...</li> </ul> </div>
+            <div id="snoop-user-info" class="mb-4 text-sm border-b border-card pb-3 space-y-1">
+                 <p><strong>Nivå:</strong> <span id="snoop-level">--</span></p>
+                 <p><strong>XP (Total):</strong> <span id="snoop-xp">--</span></p>
+                 <p><strong>Sist innlogget:</strong> <span id="snoop-last-login">--</span></p>
+                 <p><strong>Siste humør:</strong> <span id="snoop-last-mood">--</span></p>
+                 <p class="mt-2 pt-2 border-t border-dashed border-card"><strong>Siste 7 dager:</strong></p>
+                 <p>Løftet Volum: <span id="snoop-7d-volume">--</span> kg</p>
+                 <p>Gått Distanse: <span id="snoop-7d-km">--</span> km</p>
+                 <p>Opptjent XP: <span id="snoop-7d-xp">--</span></p>
+            </div>
+             <div id="snoop-achievements-section" class="mb-4 text-sm border-b border-card pb-3 space-y-1">
+                 <h5 class="text-md font-semibold text-accent">Achievements:</h5>
+                 <ul id="snoop-achievements" class="list-disc list-inside text-xs space-y-1">
+                      <li class="italic">Laster...</li>
+                 </ul>
+             </div>
             <h4 class="text-lg font-semibold mb-2 text-accent">Siste 7 dagers logg:</h4>
-            <div id="snoop-modal-log" class="text-sm space-y-3 max-h-48 overflow-y-auto pr-2"> <p class="italic">Laster logg...</p> </div>
+            <div id="snoop-modal-log" class="text-sm space-y-3 max-h-48 overflow-y-auto pr-2">
+                <p class="italic">Laster logg...</p>
+            </div>
         </div>
     </div>
-    <div id="level-up-indicator" class="level-up-indicator"> LEVEL UP! <span id="level-up-new-level" class="block text-lg"></span> </div>
-    <div id="achievement-unlocked-indicator" class="achievement-indicator"> 🏆 Achievement Unlocked! <span class="ach-name">Achievement Name Here</span> </div>
+
+    <div id="level-up-indicator" class="level-up-indicator">
+        LEVEL UP!
+        <span id="level-up-new-level" class="block text-lg"></span>
+    </div>
+
+    <div id="achievement-unlocked-indicator" class="achievement-indicator">
+        🏆 Achievement Unlocked!
+        <span class="ach-name">Achievement Name Here</span>
+    </div>
+
 
     <footer class="mt-12 text-center text-sm opacity-70">
-        <p>Fit G4FL - App edition</p> </footer>
+        <p>Fit G4FL Prototype v3.14 - Oppdelt Logikk</p>
+    </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
-    <script src="Script Level names.js"></script> <script src="Script 1.js"></script>          <script src="Script 3.js"></script>          <script src="Script 4.js"></script>          <script src="Script 5.js"></script>          <script src="Script 6.js"></script>          <script src="Script 7.js"></script>          <script src="Script 8.js"></script>          <script src="Script 9.js"></script>          <script src="Script 10.js"></script>         <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('bob.js') // Relativ sti
-            .then(registration => {
-              console.log('ServiceWorker registration successful with scope: ', registration.scope);
-            })
-            .catch(error => {
-              console.log('ServiceWorker registration failed: ', error);
+    <script src="Script Level names.js"></script> <script src="Script 8.js"></script>           <script src="Script 2.js"></script>           <script src="Script 1.js"></script>           <script src="Script 3.js"></script>           <script src="Script 4.js"></script>           <script src="Script 5.js"></script>           <script src="Script 6.js"></script>           <script src="Script 7.js"></script>           <script src="Script 9.js"></script>           <script src="Script 10.js"></script>          <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./bob.js') // Bruker './bob.js' som er korrekt
+                    .then(registration => {
+                        console.log('ServiceWorker registrert med scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('ServiceWorker registrering feilet:', error);
+                    });
             });
-        });
-      }
+        } else {
+            console.log('Service Worker støttes ikke i denne nettleseren.');
+        }
     </script>
 
 </body>
