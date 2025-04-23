@@ -1,6 +1,7 @@
 // === Script 8: Core Setup, State, Basic UI & Helpers ===
 // DEL 1 av 3 (Erstatter deler av Script 2.js)
 // Inneholder: Globale variabler, Initialisering, Brukerdata, Login/Logout, Grunnleggende UI, UI Hjelpere, Tema, Lyd, Mascot etc., Feed-rendering.
+// Lagt til ekstra console.log i renderActivityFeed for debugging.
 
 console.log("Script 8.js (DEL 1/3) loaded: Setup, State, Basic UI, Helpers.");
 
@@ -26,7 +27,7 @@ let activityFeedTimeout = null; // Timeout for feed updates
 // but fetching them here ensures they are available when needed.
 let body, appContent, loginForm, userSelect, passwordInput, loginButton, statusDisplay, loggedInUserDisplay, logoutButton, notificationArea, themeButtons, viewButtons, viewSections, workoutForm, exerciseTypeSelect, customExerciseNameField, customExerciseInput, kgField, repsField, setsField, kmField, skrittField, currentSessionList, completeWorkoutButton, levelDisplay, levelEmojiDisplay, xpCurrentDisplay, xpNextLevelDisplay, xpTotalDisplay, xpProgressBar, logEntriesContainer, userListDisplay, levelUpIndicator, levelUpNewLevel, mascotElement, mascotMessage, streakCounter, retroModeButton, dailyTipContainer, snoopModal, snoopModalTitle, snoopModalLog, closeSnoopModalButton, saveDataButton, exportDataButton, importDataButton, importFileInput, dataActionMessage, motivationButton, demoModeIndicator, checkStatButton, scoreboardList, scoreboardStepsList, achievementsListContainer, workoutCommentInput, moodSelector, adminOnlyElements, adminUserSelect, adminXpAmountInput, adminGiveXpButton, adminActionMessage, adminNewUsernameInput, adminAddUserButton, adminAddUserMessage, adminExtrasButton, adminResetUserButton, adminAchievementsListDiv, adminSaveAchievementsButton, adminAchievementsMessage, adminDeleteUserButton, adminDeleteUserMessage, chatView, chatMessages, chatForm, chatInput, chatLoadingMsg, nikkoBuyXpButton, achievementIndicator, achievementIndicatorNameSpan, activityFeedContainer;
 
-// --- Anti-Cheat Limits ---
+// --- Anti-Cheat Limits --- // Bør ligge i Script Level Names, men beholdes her for kompatibilitet med din opplastede fil
 const MAX_WEIGHT_KG = 250; const MAX_REPS = 200; const MAX_KM_WALK = 50; const MAX_STEPS = 35000;
 
 // --- Initialization ---
@@ -158,7 +159,7 @@ function initializeAppUI() {
     if (typeof populateAdminUserSelect === 'function') { if (adminUserSelect) populateAdminUserSelect(); } // Function from Script 1
     if (userListDisplay && typeof renderUserList === 'function') renderUserList(); // Function from Script 9
     if ((scoreboardList || scoreboardStepsList) && typeof renderScoreboard === 'function') renderScoreboard(); // Function from Script 9
-    if (typeof renderActivityFeed === 'function') renderActivityFeed(); // Function from this script
+    // if (typeof renderActivityFeed === 'function') renderActivityFeed(); // Called by processLoadedUsers instead
 
     if (currentUser && users[currentUser]) {
         if (logEntriesContainer && typeof renderLog === 'function') renderLog(); // Function from Script 9
@@ -208,7 +209,9 @@ function loginUser(username) {
     if (firebaseInitialized && usersRef) { usersRef.child(currentUser).update({ lastLogin: nowISO }).then(() => console.log(`Updated lastLogin for ${currentUser}.`)).catch(error => console.error(`Failed to update lastLogin:`, error)); }
     else { console.warn("Firebase not ready: Did not update lastLogin."); if (users[currentUser]) users[currentUser].lastLogin = nowISO; }
     localStorage.setItem('fitnessAppLastUser', currentUser);
-    if (passwordInput) passwordInput.value = ''; if (statusDisplay) statusDisplay.innerHTML = '';
+    if (passwordInput) passwordInput.value = '';
+    // Fjernet linje som oppdaterer #status, da info er i profilkortet
+    // if (statusDisplay) statusDisplay.innerHTML = '';
     if (typeof setTheme === 'function') setTheme(users[currentUser].theme || 'klinkekule');
     console.log(`loginUser: Calling processLoginLogoutUIUpdate for user ${currentUser}`);
     processLoginLogoutUIUpdate();
@@ -278,6 +281,8 @@ function updateLoginStateUI() {
         appContent.classList.remove('logged-in'); appContent.classList.add('logged-out');
         loggedInUserDisplay.textContent = '';
     }
+    // Fjernet oppdatering av #status her også, for sikkerhets skyld
+    // if (statusDisplay) statusDisplay.innerHTML = ''; // Clear status on any state change
 }
 /**
  * Updates the user's profile card display (level, XP, streak).
@@ -298,7 +303,8 @@ function updateUI() {
     if (xpTotalDisplay) xpTotalDisplay.textContent = totalXP.toLocaleString('no-NO');
     if (xpProgressBar) xpProgressBar.style.width = `${progress}%`;
     if (streakCounter) streakCounter.textContent = user.streak || 0;
-    if (statusDisplay) statusDisplay.innerHTML = `<h2>${currentUser}</h2><p>XP: ${totalXP.toLocaleString('no-NO')}</p><p>Nivå: ${levelNames[currentLevel] || "Ukjent"} (Level ${currentLevel})</p>`;
+    // Fjernet oppdatering av #status her for å unngå dobbel visning
+    // if (statusDisplay) statusDisplay.innerHTML = `<h2>${currentUser}</h2><p>XP: ${totalXP.toLocaleString('no-NO')}</p><p>Nivå: ${levelNames[currentLevel] || "Ukjent"} (Level ${currentLevel})</p>`;
     console.log(`UI updated for ${currentUser}: Level ${currentLevel}, XP ${totalXP}, Progress ${progress.toFixed(1)}%`);
 }
 /**
@@ -307,7 +313,8 @@ function updateUI() {
 function clearUserProfileUI() {
      if (levelDisplay) levelDisplay.textContent = 'Logg inn'; if (levelEmojiDisplay) levelEmojiDisplay.textContent = ''; if (xpCurrentDisplay) xpCurrentDisplay.textContent = '0';
      if (xpNextLevelDisplay) { xpNextLevelDisplay.textContent = (typeof getXPForLevelGain === 'function' ? getXPForLevelGain(1) : 10).toLocaleString('no-NO'); }
-     if (xpTotalDisplay) xpTotalDisplay.textContent = '0'; if (xpProgressBar) xpProgressBar.style.width = '0%'; if (streakCounter) streakCounter.textContent = '0'; if (statusDisplay) statusDisplay.innerHTML = '';
+     if (xpTotalDisplay) xpTotalDisplay.textContent = '0'; if (xpProgressBar) xpProgressBar.style.width = '0%'; if (streakCounter) streakCounter.textContent = '0';
+     if (statusDisplay) statusDisplay.innerHTML = ''; // Sørg for at denne også tømmes
      if (typeof renderXpPerDayChart === 'function') { console.log("Clearing profile chart (logged out)."); renderXpPerDayChart(); }
      if (typeof renderTotalXpPerDayChart === 'function') { console.log("Clearing scoreboard chart (logged out)."); renderTotalXpPerDayChart(); }
 }
@@ -463,17 +470,28 @@ function formatTimeAgo(timestamp) {
 }
 /**
  * Renders the activity feed using entryId for timestamp.
+ * Added extra console logs for debugging.
  */
 function renderActivityFeed() {
-     console.log("Attempting to render activity feed. Container:", activityFeedContainer ? 'Found' : 'Not Found', "Users:", users ? Object.keys(users).length : 'null/undefined');
-     if (!activityFeedContainer) return;
-    if (!users || Object.keys(users).length === 0) { activityFeedContainer.innerHTML = '<p class="italic">Ingen brukerdata.</p>'; return; }
+    console.log("RENDER ACTIVITY FEED: Starter..."); // Ny logg
+    if (!activityFeedContainer) {
+         console.error("RENDER ACTIVITY FEED: Containeren #activity-feed ble ikke funnet!"); // Ny logg
+         return;
+    }
+    if (!users || Object.keys(users).length === 0) {
+        console.log("RENDER ACTIVITY FEED: Ingen brukerdata tilgjengelig."); // Ny logg
+        activityFeedContainer.innerHTML = '<p class="italic">Ingen brukerdata.</p>';
+        return;
+    }
+
     const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+    console.log(`RENDER ACTIVITY FEED: Sjekker for entries nyere enn timestamp: ${twentyFourHoursAgo}`); // Ny logg
     let activityItems = [];
+
     Object.entries(users).forEach(([username, userData]) => {
         if (userData && Array.isArray(userData.log)) {
             userData.log.forEach(entry => {
-                const entryTimestamp = entry.entryId;
+                const entryTimestamp = entry.entryId; // Bruker entryId som timestamp
                 if (entryTimestamp && typeof entryTimestamp === 'number' && entryTimestamp >= twentyFourHoursAgo) {
                     if (entry.exercises && Array.isArray(entry.exercises)) {
                          entry.exercises.forEach(ex => {
@@ -483,16 +501,31 @@ function renderActivityFeed() {
                             else if (ex.type === 'Skritt' && ex.steps !== undefined) text = `logget ${ex.steps.toLocaleString('no-NO')} skritt`;
                             else if (ex.kilos !== undefined && ex.reps !== undefined && ex.sets !== undefined) text = `trente ${exerciseName} (${ex.kilos}kg x ${ex.reps}r x ${ex.sets}s)`;
                             else if (ex.type !== 'Gåtur' && ex.type !== 'Skritt') text = `fullførte ${exerciseName}`;
-                            if (text) activityItems.push({ timestamp: entryTimestamp, user: username, text: text });
+                            if (text) {
+                                activityItems.push({ timestamp: entryTimestamp, user: username, text: text });
+                            }
                          });
                      }
                  }
              });
         }
     });
-    activityItems.sort((a, b) => b.timestamp - a.timestamp); const itemsToShow = activityItems.slice(0, 50);
-    if (itemsToShow.length === 0) activityFeedContainer.innerHTML = '<p class="italic">Ingen aktivitet siste 24 timer.</p>';
-    else activityFeedContainer.innerHTML = itemsToShow.map(item => `<p><strong class="text-accent">${item.user}</strong> ${item.text} <span class="feed-timestamp">${formatTimeAgo(item.timestamp)}</span></p>`).join('');
+
+    console.log(`RENDER ACTIVITY FEED: Fant totalt ${activityItems.length} aktivitets-items innenfor 24t.`); // Ny logg
+
+    activityItems.sort((a, b) => b.timestamp - a.timestamp);
+    const itemsToShow = activityItems.slice(0, 50); // Begrenser til 50
+    console.log(`RENDER ACTIVITY FEED: Viser ${itemsToShow.length} siste items.`); // Ny logg
+
+    if (itemsToShow.length === 0) {
+        activityFeedContainer.innerHTML = '<p class="italic">Ingen aktivitet siste 24 timer.</p>';
+        console.log("RENDER ACTIVITY FEED: Satt innerHTML til 'Ingen aktivitet'."); // Ny logg
+    } else {
+        const feedHtml = itemsToShow.map(item => `<p><strong class="text-accent">${item.user}</strong> ${item.text} <span class="feed-timestamp">${formatTimeAgo(item.timestamp)}</span></p>`).join('');
+        activityFeedContainer.innerHTML = feedHtml;
+        console.log("RENDER ACTIVITY FEED: Oppdaterte innerHTML med faktiske aktiviteter."); // Ny logg
+    }
 }
+
 
 // --- END OF SCRIPT 8 (DEL 1/3) ---
